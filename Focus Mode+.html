@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="de" class="transition-colors duration-500">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Focus Mode+ — Pitch & Interactive Spec</title>
+ <!-- Tailwind CSS -->
+ <script src="https://cdn.tailwindcss.com"></script>
+ <!-- Tailwind Config for Dark Mode -->
+ <script>
+   tailwind.config = {
+     darkMode: 'class',
+   }
+ </script>
+ <!-- Lucide Icons (для премиального внешнего вида) -->
+ <script src="https://unpkg.com/lucide@latest"></script>
+ <!-- Google Fonts: Inter -->
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+ 
+ <style>
+   body {
+     font-family: 'Inter', sans-serif;
+     -webkit-font-smoothing: antialiased;
+     scroll-behavior: smooth;
+   }
+   /* Стилизация скроллбара под Apple для левой части */
+   ::-webkit-scrollbar {
+     width: 6px;
+     height: 6px;
+   }
+   ::-webkit-scrollbar-track {
+     background: transparent;
+   }
+   ::-webkit-scrollbar-thumb {
+     background: rgba(156, 163, 175, 0.3);
+     border-radius: 9999px;
+   }
+   ::-webkit-scrollbar-thumb:hover {
+     background: rgba(156, 163, 175, 0.5);
+   }
+
+   /* Прячем скроллбар внутри самого iPhone и внутренних скролл-контейнеров */
+   .hide-scrollbar::-webkit-scrollbar,
+   #appBody::-webkit-scrollbar {
+     display: none;
+   }
+   .hide-scrollbar,
+   #appBody {
+     -ms-overflow-style: none;
+     scrollbar-width: none;
+   }
+   #appBody {
+     overflow-x: hidden;
+   }
+
+   /* Улучшенная плавная анимация переключения экранов iPhone */
+   @keyframes screenFadeIn {
+     from {
+       opacity: 0;
+       transform: translateY(8px);
+     }
+     to {
+       opacity: 1;
+       transform: translateY(0);
+     }
+   }
+   .app-screen:not(.hidden) {
+     animation: screenFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+   }
+
+   /* Анимация точек печатающего бота */
+   @keyframes typingDots {
+     0%, 20% { transform: translateY(0); opacity: 0.5; }
+     50% { transform: translateY(-3px); opacity: 1; }
+     80%, 100% { transform: translateY(0); opacity: 0.5; }
+   }
+   .typing-dot {
+     animation: typingDots 1.4s infinite ease-in-out both;
+   }
+   .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+   .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+   /* =========================================
+      Анимации и стили для Zen-Mode (Vollbild)
+      ========================================= */
+   header {
+     transition: margin-top 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+   }
+   
+   #presentationPanel {
+     transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+     width: 58.333333%; /* w-7/12 */
+     min-width: 0;
+   }
+   
+   #iphonePanel {
+     transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+     width: 41.666667%; /* w-5/12 */
+   }
+
+   #iphoneTopNav {
+     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+     max-height: 100px;
+     opacity: 1;
+   }
+
+   /* Состояния при включенном Zen Mode */
+   body.zen-active header {
+     margin-top: -4rem; /* Прячем шапку наверх */
+   }
+
+   body.zen-active #presentationPanel {
+     width: 0%;
+     padding-left: 0 !important;
+     padding-right: 0 !important;
+     opacity: 0;
+     overflow: hidden;
+     pointer-events: none;
+   }
+
+   body.zen-active #iphonePanel {
+     width: 100%;
+   }
+
+   body.zen-active #iphoneTopNav {
+     max-height: 0;
+     opacity: 0;
+     margin: 0;
+     padding: 0;
+     border-width: 0;
+     transform: scale(0.95);
+     pointer-events: none;
+   }
+
+   /* Кнопка выхода из Zen Mode */
+   #zenExitBtn {
+     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+     opacity: 0;
+     pointer-events: none;
+     transform: translateY(-20px);
+   }
+   body.zen-active #zenExitBtn {
+     opacity: 1;
+     pointer-events: auto;
+     transform: translateY(0);
+   }
+ </style>
+</head>
+<body class="bg-slate-50 dark:bg-black text-slate-900 dark:text-neutral-100 overflow-hidden h-screen flex flex-col transition-colors duration-500 relative">
+
+ <!-- Кнопка выхода из Zen Mode (Спрятана по умолчанию) -->
+ <button id="zenExitBtn" onclick="exitZenMode()" class="fixed top-6 left-6 z-[100] px-4 py-3 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white rounded-2xl font-bold text-xs shadow-lg flex items-center gap-2 hover:bg-white dark:hover:bg-neutral-800 transition-colors">
+   <i data-lucide="arrow-left" class="w-4 h-4"></i>
+   Zurück zur Präsentation
+ </button>
+
+ <!-- Шапка презентации -->
+ <header id="mainHeader" class="h-16 border-b border-slate-200/80 dark:border-white/5 bg-white/80 dark:bg-black/60 backdrop-blur-md flex items-center justify-between px-6 z-10 shrink-0 transition-colors duration-500 relative">
+   <div class="flex items-center gap-2">
+     <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-sm shadow-indigo-200 dark:shadow-purple-900/50">
+       <i data-lucide="target" class="w-5 h-5"></i>
+     </div>
+     <div>
+       <span class="font-bold text-slate-800 dark:text-white tracking-tight">Focus Mode+</span>
+       <span class="text-xs text-slate-400 dark:text-neutral-500 ml-1.5 font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-neutral-800 rounded">Interactive Spec</span>
+     </div>
+   </div>
+   
+   <div class="flex items-center gap-4">
+     <span class="text-xs text-slate-400 dark:text-neutral-500 font-medium">Pitch-Modus</span>
+     <div class="flex gap-1 bg-slate-100 dark:bg-neutral-900 p-1 rounded-lg transition-colors duration-500">
+       <button id="prevSlideBtn" onclick="prevSlide()" class="p-1.5 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white transition-all">
+         <i data-lucide="chevron-left" class="w-4 h-4"></i>
+       </button>
+       <span id="slideCounter" class="text-xs font-semibold px-2 flex items-center text-slate-700 dark:text-neutral-300 min-w-[3.5rem] justify-center">1 / 9</span>
+       <button id="nextSlideBtn" onclick="nextSlide()" class="p-1.5 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white transition-all">
+         <i data-lucide="chevron-right" class="w-4 h-4"></i>
+       </button>
+     </div>
+   </div>
+ </header>
+
+ <!-- Основной контейнер -->
+ <main class="flex-1 flex overflow-hidden w-full">
+   
+   <!-- ЛЕВАЯ ЧАСТЬ: Слайды -->
+   <section id="presentationPanel" class="h-full overflow-y-auto px-12 py-16 flex flex-col justify-between border-r border-slate-200 dark:border-neutral-900 bg-gradient-to-br from-slate-100 via-white to-blue-50/80 dark:from-black dark:via-[#0a0a0a] dark:to-purple-950/20 relative transition-colors duration-500">
+     
+     <div class="absolute w-72 h-72 bg-blue-300/40 dark:bg-purple-600/20 rounded-full filter blur-[100px] top-1/4 left-10 pointer-events-none transition-colors duration-700"></div>
+     <div class="absolute w-72 h-72 bg-indigo-300/40 dark:bg-violet-600/20 rounded-full filter blur-[120px] bottom-1/4 right-10 pointer-events-none transition-colors duration-700"></div>
+
+     <!-- Контейнер для слайдов -->
+     <div id="slidesContainer" class="my-auto max-w-2xl mx-auto w-full transition-all duration-500 relative z-10 p-10 md:p-12 rounded-3xl bg-white/70 dark:bg-[#111111]/60 backdrop-blur-md border border-white/80 dark:border-white/5 shadow-sm">
+       
+       <!-- Слайд 1 (Intro) -->
+       <div id="slide-1" class="slide-content space-y-8">
+         <span class="text-xs font-bold text-blue-600 dark:text-purple-400 tracking-widest uppercase bg-blue-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">Pitch Start</span>
+         <h1 class="text-5xl md:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-none">Focus Mode+</h1>
+         <p class="text-2xl md:text-3xl font-light text-slate-500 dark:text-neutral-400">Eine neue Art der digitalen Konzentration.</p>
+         <div class="h-px bg-slate-200/80 dark:bg-neutral-800 my-4 transition-colors"></div>
+         <p class="text-slate-600 dark:text-neutral-300 leading-relaxed text-base md:text-lg">
+           Focus Mode+ ist kein gewöhnlicher Timer. Es ist ein intelligentes Konzept zur nachhaltigen Verbesserung der mentalen Ausdauer durch digitale Strukturierung und adaptives Verhaltenstraining.
+         </p>
+         <div class="p-5 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-white/5 flex items-start gap-4 shadow-xs">
+           <i data-lucide="sparkles" class="w-6 h-6 text-indigo-500 dark:text-purple-400 shrink-0 mt-0.5"></i>
+           <p class="text-sm text-slate-500 dark:text-neutral-400 leading-relaxed">
+             <strong>Präsentations-Tipp:</strong> Nutzen Sie die Steuerung oben oder klicken Sie links/rechts. Das iPhone rechts wechselt automatisch die Screens passend zum Slide.
+           </p>
+         </div>
+       </div>
+
+       <!-- Слайд 2 (Problem) -->
+       <div id="slide-2" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-rose-600 dark:text-rose-400 tracking-widest uppercase bg-rose-50 dark:bg-rose-900/30 px-3 py-1.5 rounded-full">Das Problem</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Smartphones zerstören unsere Fähigkeit zu fokussieren.</h2>
+         <ul class="space-y-6 text-slate-600 dark:text-neutral-300">
+           <li class="flex items-start gap-4">
+             <span class="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">1</span>
+             <div class="space-y-1">
+               <strong class="text-slate-900 dark:text-white text-lg block">Massive Ablenkung</strong>
+               <p class="text-base leading-relaxed">Menschen verlieren täglich wertvolle Stunden durch unbewusstes Greifen zum Smartphone.</p>
+             </div>
+           </li>
+           <li class="flex items-start gap-4">
+             <span class="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">2</span>
+             <div class="space-y-1">
+               <strong class="text-slate-900 dark:text-white text-lg block">Fehlende Barrieren</strong>
+               <p class="text-base leading-relaxed">Der Wechsel von Arbeit zu Social Media dauert nur 2 Sekunden.</p>
+             </div>
+           </li>
+         </ul>
+       </div>
+
+       <!-- Слайд 3 (Lösung) -->
+       <div id="slide-3" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full">Die Lösung</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Fokus aktiv trainieren.</h2>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed">
+           Wir ersetzen Willenskraft durch intelligente Interaktionsdaten und clevere digitale Hürden. Das System agiert wie ein persönlicher Trainer für Ihre Aufmerksamkeit.
+         </p>
+         <div class="grid grid-cols-2 gap-5 pt-2">
+           <div class="p-5 border border-slate-100 dark:border-white/5 rounded-2xl bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm shadow-xs space-y-2">
+             <i data-lucide="shield-alert" class="w-7 h-7 text-emerald-500 dark:text-emerald-400 mb-2"></i>
+             <h4 class="font-bold text-base text-slate-800 dark:text-white">Präventives Training</h4>
+             <p class="text-sm text-slate-500 dark:text-neutral-400 leading-normal">Stärkt die Konzentrationszeit durch messbare Erfolge.</p>
+           </div>
+           <div class="p-5 border border-slate-100 dark:border-white/5 rounded-2xl bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm shadow-xs space-y-2">
+             <i data-lucide="activity" class="w-7 h-7 text-emerald-500 dark:text-emerald-400 mb-2"></i>
+             <h4 class="font-bold text-base text-slate-800 dark:text-white">Verhaltensmuster</h4>
+             <p class="text-sm text-slate-500 dark:text-neutral-400 leading-normal">Interaktive Barrieren stoppen das Driften.</p>
+           </div>
+         </div>
+       </div>
+
+       <!-- Слайд 4 (Wie es funktioniert) -->
+       <div id="slide-4" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-indigo-600 dark:text-purple-400 tracking-widest uppercase bg-indigo-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">Workflow</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Einfacher, aber hochwirksamer Ablauf.</h2>
+         <div class="space-y-5">
+           <div class="flex gap-4 items-start">
+             <div class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-purple-900/50 text-indigo-600 dark:text-purple-400 flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">1</div>
+             <div class="space-y-0.5">
+               <h4 class="font-bold text-slate-800 dark:text-white text-lg">Fokus-Sitzung starten</h4>
+               <p class="text-sm text-slate-500 dark:text-neutral-400">Der Timer sperrt störende Elemente im Hintergrund.</p>
+             </div>
+           </div>
+           <div class="flex gap-4 items-start">
+             <div class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-purple-900/50 text-indigo-600 dark:text-purple-400 flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">2</div>
+             <div class="space-y-0.5">
+               <h4 class="font-bold text-slate-800 dark:text-white text-lg">Ablenkungen erkennen</h4>
+               <p class="text-sm text-slate-500 dark:text-neutral-400">Erkennt unbewusste Muster vor der sofortigen Flucht.</p>
+             </div>
+           </div>
+         </div>
+       </div>
+
+       <!-- Слайд 5 (Ablenkungs-System) -->
+       <div id="slide-5" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-amber-600 dark:text-amber-400 tracking-widest uppercase bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-full">Die Kern-Innovation</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Die interaktive Barriere bei Ablenkung.</h2>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed">
+           Sobald das System ein Verlassen der Fokus-Sitzung registriert, schaltet sich eine <strong>Sperr-Barriere</strong> ein.
+         </p>
+         <div class="p-4 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-xl border border-slate-100 dark:border-white/5 text-sm flex items-center justify-between shadow-xs">
+           <span class="text-slate-500 dark:text-neutral-400">Probieren Sie es im iPhone aus!</span>
+           <button onclick="triggerAppAblenkung()" class="px-3.5 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition text-xs font-bold shadow-sm">Ablenkung triggern</button>
+         </div>
+       </div>
+
+       <!-- Слайд 6 (Smart Analytics & Gamification) -->
+       <div id="slide-6" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-purple-600 dark:text-purple-400 tracking-widest uppercase bg-purple-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">Motivation & Fortschritt</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Gamification für den Fokus.</h2>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed">
+           Durch ein durchdachtes Belohnungs- und Vergleichssystem steigt die Motivation, konzentriert zu bleiben, drastisch an.
+         </p>
+         
+         <div class="grid grid-cols-2 gap-4 mt-2">
+           <div class="p-4 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs flex items-start gap-3">
+             <i data-lucide="flame" class="w-6 h-6 text-orange-500 shrink-0"></i>
+             <div>
+               <h4 class="font-bold text-slate-800 dark:text-white text-sm">Fokus-Serie (Streak)</h4>
+               <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">Tägliche Nutzung baut eine schützenswerte Serie auf.</p>
+             </div>
+           </div>
+           <div class="p-4 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs flex items-start gap-3">
+             <i data-lucide="trophy" class="w-6 h-6 text-amber-500 shrink-0"></i>
+             <div>
+               <h4 class="font-bold text-slate-800 dark:text-white text-sm">Rangliste</h4>
+               <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">Vergleiche deine Fokuszeit mit anderen Nutzern.</p>
+             </div>
+           </div>
+           <div class="p-4 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs flex items-start gap-3">
+             <i data-lucide="medal" class="w-6 h-6 text-indigo-500 shrink-0"></i>
+             <div>
+               <h4 class="font-bold text-slate-800 dark:text-white text-sm">Erfolge</h4>
+               <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">Sammle Badges für erreichte Meilensteine.</p>
+             </div>
+           </div>
+           <div class="p-4 bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs flex items-start gap-3">
+             <i data-lucide="activity" class="w-6 h-6 text-emerald-500 shrink-0"></i>
+             <div>
+               <h4 class="font-bold text-slate-800 dark:text-white text-sm">Focus Score</h4>
+               <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">Dein persönlicher Indikator für mentale Ausdauer.</p>
+             </div>
+           </div>
+         </div>
+       </div>
+
+       <!-- Слайд 7 (Premium & Belohnungen) -->
+       <div id="slide-7" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-blue-600 dark:text-purple-400 tracking-widest uppercase bg-blue-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">Monetarisierung</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Freemium durch Leistung.</h2>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed">
+           Nutzer können Premium-Funktionen sowohl durch ein Abonnement (3,00 € / Monat) als auch durch <strong>aktive Nutzung der App</strong> freischalten.
+         </p>
+         
+         <div class="border border-slate-100 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm bg-white/50 dark:bg-neutral-800/40 backdrop-blur-sm">
+           <div class="p-4 bg-gradient-to-r from-amber-500 to-orange-400 text-white flex items-center justify-between">
+             <span class="font-bold">Premium durch Fokuszeit</span>
+             <i data-lucide="gift" class="w-5 h-5"></i>
+           </div>
+           <div class="p-5 space-y-3.5 text-sm text-slate-600 dark:text-neutral-300">
+             <div class="flex items-center justify-between">
+               <span class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> 100 Minuten Fokus</span>
+               <strong class="text-amber-600 dark:text-amber-400">Premium für 1 Tag</strong>
+             </div>
+             <div class="h-px bg-slate-100 dark:bg-white/5"></div>
+             <div class="flex items-center justify-between">
+               <span class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> 10 Stunden Fokus</span>
+               <strong class="text-amber-600 dark:text-amber-400">Premium für 3 Tage</strong>
+             </div>
+             <div class="h-px bg-slate-100 dark:bg-white/5"></div>
+             <div class="flex items-center justify-between">
+               <span class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4 text-slate-400"></i> 50 Stunden Fokus</span>
+               <strong class="text-amber-600 dark:text-amber-400">Premium für 7 Tage</strong>
+             </div>
+           </div>
+         </div>
+         
+         <button onclick="triggerAchievementPopup()" class="mt-4 px-4 py-2.5 bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-sm">
+           <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+           Belohnungs-Popup testen
+         </button>
+       </div>
+
+       <!-- Слайд 8 (Zukunft) -->
+       <div id="slide-8" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-slate-600 dark:text-neutral-400 tracking-widest uppercase bg-slate-100 dark:bg-neutral-800 px-3 py-1.5 rounded-full">Roadmap</span>
+         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-950 dark:text-white tracking-tight leading-tight">Die Zukunft: Ein übergreifendes System.</h2>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed">
+           Konzentration hört nicht beim Smartphone auf. Geplant ist eine nahtlose Desktop-Integration (Mac/PC).
+         </p>
+       </div>
+
+       <!-- Слайд 9 (Finale - App Vollbild) -->
+       <div id="slide-9" class="slide-content hidden space-y-8">
+         <span class="text-xs font-bold text-blue-600 dark:text-purple-400 tracking-widest uppercase bg-blue-50 dark:bg-purple-900/30 px-3 py-1.5 rounded-full">Fazit</span>
+         <h2 class="text-5xl md:text-6xl font-black text-slate-950 dark:text-white tracking-tight leading-tight">Focus Mode+</h2>
+         <p class="text-2xl md:text-3xl font-light text-slate-500 dark:text-neutral-400 italic">“Train your attention, not your distraction.”</p>
+         <div class="h-px bg-slate-200/80 dark:bg-white/10 my-6"></div>
+         <p class="text-slate-600 dark:text-neutral-300 text-base md:text-lg leading-relaxed mb-4">
+           Vielen Dank für Ihre Aufmerksamkeit. Wechseln Sie nun in den Vollbild-Modus, um die App ungestört und organisch zu testen.
+         </p>
+         <div class="flex gap-3 pt-2">
+           <button onclick="changeSlide(1)" class="px-6 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl text-sm font-semibold hover:bg-slate-800 transition shadow-sm">Nochmal ansehen</button>
+           
+           <!-- Новая кнопка Zen Mode -->
+           <button onclick="enterZenMode()" class="px-6 py-3.5 border border-indigo-600/30 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-sm">
+             <i data-lucide="maximize" class="w-4 h-4"></i>
+             App im Vollbild testen
+           </button>
+         </div>
+       </div>
+
+     </div>
+
+     <!-- Контроллер внизу левой панели -->
+     <div class="mt-auto pt-6 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between relative z-10 transition-colors duration-500">
+       <div class="text-xs text-slate-400 font-medium">
+         Focus Mode+ &bull; Startup Pitch Concept
+       </div>
+       <div class="flex items-center gap-1.5">
+         <button onclick="toggleTheme()" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800 transition" title="Farbschema ändern">
+           <i data-lucide="palette" class="w-4 h-4"></i>
+         </button>
+       </div>
+     </div>
+
+   </section>
+
+   <!-- ПРАВАЯ ЧАСТЬ: Симулятор iPhone -->
+   <section id="iphonePanel" class="h-full bg-slate-100 dark:bg-[#050505] flex items-center justify-center p-6 relative transition-colors duration-500 overflow-hidden">
+     
+     <div class="absolute w-[400px] h-[400px] bg-indigo-300/40 dark:bg-purple-500/35 rounded-full filter blur-[100px] -top-10 -right-10 animate-pulse transition-colors duration-700 pointer-events-none"></div>
+     <div class="absolute w-[400px] h-[400px] bg-blue-300/40 dark:bg-violet-500/25 rounded-full filter blur-[100px] -bottom-10 -left-10 transition-colors duration-700 pointer-events-none"></div>
+     <div class="absolute w-[300px] h-[500px] hidden dark:block bg-fuchsia-600/15 rounded-full filter blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-colors duration-700 pointer-events-none"></div>
+
+     <div class="flex flex-col items-center gap-6 my-auto z-10 w-full max-w-[340px]">
+       
+       <!-- Кнопки управления девайсом (Спрячутся в Zen Mode) -->
+       <div id="iphoneTopNav" class="w-full flex flex-wrap gap-1 justify-center bg-white/95 dark:bg-neutral-900/80 backdrop-blur-md px-2.5 py-2 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.06)] transition-colors duration-500">
+         <button onclick="setAppScreen('home')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-indigo-600 text-white rounded-lg transition duration-200 hover:scale-105">HOME</button>
+         <button onclick="setAppScreen('timer')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-200 text-slate-600 dark:text-neutral-300 rounded-lg transition duration-200">TIMER</button>
+         <button onclick="setAppScreen('stats')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-200 text-slate-600 dark:text-neutral-300 rounded-lg transition duration-200">STATS</button>
+         <button onclick="setAppScreen('score')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-200 text-slate-600 dark:text-neutral-300 rounded-lg transition duration-200">SCORE</button>
+         <button onclick="setAppScreen('settings')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-200 text-slate-600 dark:text-neutral-300 rounded-lg transition duration-200">SET</button>
+         <button onclick="setAppScreen('premium')" class="app-nav-btn text-[10px] tracking-wider font-bold px-2.5 py-1.5 bg-slate-50 dark:bg-neutral-800 hover:bg-slate-200 text-slate-600 dark:text-neutral-300 rounded-lg transition duration-200">PREM</button>
+         <button onclick="triggerAppAblenkung()" class="text-[10px] tracking-wider font-extrabold px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition duration-200 shadow-sm shadow-amber-200 dark:shadow-none">DIST</button>
+       </div>
+
+       <!-- IPHONE FRAME -->
+       <div id="iphoneFrame" class="relative w-[340px] h-[640px] bg-slate-950 dark:bg-black rounded-[52px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] dark:shadow-[0_0_40px_rgba(168,85,247,0.15),0_25px_60px_-15px_rgba(0,0,0,0.7)] border-[12px] border-slate-900 dark:border-black ring-1 ring-black/5 dark:ring-white/15 select-none transition-all duration-500">
+         
+         <!-- Внутренний экран -->
+         <div id="screenWrapper" class="relative w-full h-full bg-slate-50 flex flex-col overflow-hidden rounded-[40px] isolate transition-colors duration-300">
+           
+           <!-- Dynamic Island -->
+           <div class="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-[60] flex items-center justify-between px-2.5 transition-all hover:w-36 cursor-pointer" onclick="if(timerInterval) setAppScreen('timer')">
+             <div class="w-2.5 h-2.5 bg-slate-900 rounded-full"></div>
+             <div id="islandIndicator" class="text-[9px] text-indigo-400 font-bold hidden flex items-center gap-1">
+               <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping"></span> Active
+             </div>
+             <div class="w-4 h-1 bg-slate-900 rounded-full"></div>
+           </div>
+
+           <!-- StatusBar -->
+           <div class="h-11 bg-white text-slate-800 px-7 flex items-end justify-between pb-1.5 text-xs font-semibold shrink-0 z-40 transition-colors duration-300" id="statusBar">
+             <span id="statusBarTime">09:41</span>
+             <div class="flex items-center gap-1.5">
+               <i data-lucide="signal" class="w-3.5 h-3.5"></i>
+               <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+               <div class="w-5 h-2.5 border border-slate-800 rounded-sm p-0.5 flex items-center">
+                 <div class="h-full w-full bg-slate-800 rounded-2xs"></div>
+               </div>
+             </div>
+           </div>
+
+           <!-- ЭКРАНЫ ПРИЛОЖЕНИЯ -->
+           <div class="flex-1 relative flex flex-col bg-slate-50 text-slate-900 transition-colors duration-300 hide-scrollbar" id="appBody">
+             
+             <!-- ЭКРАН 1: Startbildschirm (Home) -->
+             <div id="app-screen-home" class="app-screen p-5 flex flex-col justify-between flex-1 space-y-6">
+               <div class="space-y-6">
+                 <div class="flex items-center justify-between">
+                   <div>
+                     <span class="text-2xs text-slate-400 font-semibold uppercase tracking-wider">Willkommen bei</span>
+                     <h2 class="text-2xl font-black text-slate-950 tracking-tight">Focus Mode+</h2>
+                   </div>
+                   <!-- Настройки и чат -->
+                   <div class="flex gap-2">
+                     <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 cursor-pointer hover:bg-indigo-100 transition" onclick="setAppScreen('chat')" title="AI Coach (Premium)">
+                       <i data-lucide="message-square" class="w-5 h-5"></i>
+                     </div>
+                     <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 cursor-pointer hover:bg-slate-200 transition" onclick="setAppScreen('settings')">
+                       <i data-lucide="user" class="w-5 h-5"></i>
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Главная карточка сегодня -->
+                 <div class="p-5 bg-gradient-to-tr from-slate-900 to-slate-800 text-white rounded-3xl space-y-4 shadow-xl cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="setAppScreen('stats')">
+                   <div>
+                     <span class="text-2xs text-slate-400 font-semibold uppercase tracking-wider">Heute gesammelt</span>
+                     <div class="text-4xl font-extrabold mt-0.5">42 <span class="text-lg font-light text-slate-300">Minuten</span></div>
+                   </div>
+                   <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-700/50">
+                     <span class="text-slate-400 flex items-center gap-1">
+                       <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Status
+                     </span>
+                     <span class="font-medium text-emerald-400 flex items-center gap-1">Bereit <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                   </div>
+                 </div>
+
+                 <!-- Quick Stats Grid -->
+                 <div class="grid grid-cols-2 gap-3">
+                   <div class="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs cursor-pointer hover:bg-slate-50 transition" onclick="setAppScreen('score')">
+                     <span class="text-3xs font-semibold text-orange-500 uppercase tracking-wider flex items-center gap-1">
+                       <i data-lucide="flame" class="w-3 h-3"></i> Fokus-Serie
+                     </span>
+                     <div class="text-lg font-bold text-slate-800 mt-0.5">14 Tage</div>
+                   </div>
+                   <div class="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs">
+                     <span class="text-3xs font-semibold text-slate-400 uppercase tracking-wider">Diese Woche</span>
+                     <div class="text-lg font-bold text-slate-800 mt-0.5">6h 12m</div>
+                   </div>
+                 </div>
+
+                 <!-- Feature Info Pill -->
+                 <div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex items-center gap-3">
+                   <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                     <i data-lucide="shield" class="w-4 h-4"></i>
+                   </div>
+                   <div>
+                     <span class="text-2xs font-semibold text-indigo-950 block">Verhaltens-Schutz aktiv</span>
+                     <span class="text-[10px] text-indigo-500 block">Digitale Barrieren greifen sofort</span>
+                   </div>
+                 </div>
+               </div>
+
+               <!-- Кнопка старта -->
+               <button onclick="startFocusSession(true)" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm tracking-tight transition shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 mt-auto">
+                 <i data-lucide="play" class="w-4 h-4 fill-white"></i> Fokus starten
+               </button>
+             </div>
+
+             <!-- ЭКРАН 2: Fokus-Sitzung -->
+             <div id="app-screen-timer" class="app-screen p-5 flex flex-col justify-between flex-1 space-y-6 hidden">
+               <div class="text-center space-y-1">
+                 <span id="currentFocusModeLabel" class="text-xs font-semibold text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full">Lernmodus</span>
+                 <p class="text-xs text-slate-400">Fokus aktiv</p>
+               </div>
+               <div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+                 <svg class="absolute inset-0 w-full h-full transform -rotate-90">
+                   <circle cx="96" cy="96" r="80" stroke="#E2E8F0" stroke-width="6" fill="transparent" />
+                   <circle id="timerCircleProgress" cx="96" cy="96" r="80" stroke="#4F46E5" stroke-width="8" fill="transparent" stroke-dasharray="502" stroke-dashoffset="100" class="transition-all duration-1000" />
+                 </svg>
+                 <div class="text-center z-10 flex flex-col items-center justify-center">
+                   <span id="timerDigits" class="text-[32px] leading-none font-extrabold tracking-tight text-slate-900 block mt-1.5">00:25:00</span>
+                   <span class="text-[10px] text-slate-400 uppercase tracking-widest block mt-2 font-medium">Sitzungsdauer</span>
+                 </div>
+               </div>
+               <div class="space-y-3">
+                 <div class="p-3.5 bg-white border border-slate-200/60 rounded-2xl flex items-center justify-between text-xs">
+                   <span class="text-slate-500">Intensität</span><span class="font-semibold text-slate-800">Mittel</span>
+                 </div>
+                 <div class="p-3.5 bg-white border border-slate-200/60 rounded-2xl flex items-center justify-between text-xs">
+                   <span class="text-slate-500">App-Blockierung</span><span class="font-semibold text-slate-800">Aktiviert</span>
+                 </div>
+               </div>
+               <div class="grid grid-cols-2 gap-3 mt-auto">
+                 <button onclick="triggerAppAblenkung()" class="py-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                   <i data-lucide="zap" class="w-3.5 h-3.5"></i> Ablenkung
+                 </button>
+                 <button onclick="stopFocusSession()" class="py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5">
+                   <i data-lucide="square" class="w-3.5 h-3.5 fill-rose-600"></i> Beenden
+                 </button>
+               </div>
+             </div>
+
+             <!-- ЭКРАН 3: Statistik -->
+             <div id="app-screen-stats" class="app-screen p-5 flex flex-col justify-between flex-1 space-y-5 hidden">
+               <div class="space-y-4">
+                 <div>
+                   <span class="text-2xs text-slate-400 font-semibold uppercase tracking-wider">Fortschritt</span>
+                   <h3 class="text-xl font-bold text-slate-900">Täglicher Fokus</h3>
+                 </div>
+                 <!-- График -->
+                 <div class="bg-white p-4 rounded-3xl border border-slate-200/60 space-y-4 shadow-xs">
+                   <div class="flex justify-between items-center">
+                     <span class="text-xs font-semibold text-slate-700">Wochenübersicht</span>
+                     <span class="text-3xs text-slate-400">Soll: 60 min/Tag</span>
+                   </div>
+                   <div class="h-28 flex items-end justify-between gap-1.5 pt-4">
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-2/3"></div><span class="text-[9px] text-slate-400">M</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-5/6"></div><span class="text-[9px] text-slate-400">D</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-indigo-600 rounded-t-lg h-3/4"></div><span class="text-[9px] text-indigo-600 font-semibold">M</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-1/4"></div><span class="text-[9px] text-slate-400">D</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-4/6"></div><span class="text-[9px] text-slate-400">F</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-0.5"></div><span class="text-[9px] text-slate-400">S</span></div>
+                     <div class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"><div class="w-full bg-slate-100 rounded-t-lg h-0.5"></div><span class="text-[9px] text-slate-400">S</span></div>
+                   </div>
+                 </div>
+                 <!-- Индикаторы -->
+                 <div class="space-y-2.5">
+                   <div class="p-3 bg-white border border-slate-200/60 rounded-2xl flex items-center justify-between text-xs">
+                     <span class="text-slate-500">Fokuszeit</span><span class="font-semibold text-slate-800">42 Min</span>
+                   </div>
+                   <div class="p-3 bg-white border border-slate-200/60 rounded-2xl flex items-center justify-between text-xs">
+                     <span class="text-slate-500">Ablenkungen</span><span class="font-semibold text-amber-500">1 blockiert</span>
+                   </div>
+                 </div>
+               </div>
+               
+               <!-- Кнопки управления (в том числе возврат) -->
+               <div class="mt-auto space-y-2">
+                 <button onclick="setAppScreen('score')" class="w-full py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-2xl transition flex items-center justify-center gap-2">
+                   Rangliste & Erfolge
+                   <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                 </button>
+                 <button onclick="setAppScreen('home')" class="w-full py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-2xl transition flex items-center justify-center gap-2">
+                   Zurück zum Home
+                 </button>
+               </div>
+             </div>
+
+             <!-- ЭКРАН 4: Motivation & Leaderboard -->
+             <div id="app-screen-score" class="app-screen flex-1 hidden flex flex-col overflow-y-auto hide-scrollbar">
+               <div class="p-5 space-y-6 flex-1">
+                 
+                 <div>
+                   <span class="text-2xs text-slate-400 font-semibold uppercase tracking-wider">Motivation</span>
+                   <h3 class="text-xl font-bold text-slate-900">Rangliste & Erfolge</h3>
+                 </div>
+
+                 <!-- Mini Score Bubble -->
+                 <div class="flex gap-3">
+                   <div class="flex-1 bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center justify-center flex-col shadow-xs">
+                     <span class="text-3xs text-indigo-400 font-bold uppercase tracking-widest block mb-0.5">Focus Score</span>
+                     <span class="text-2xl font-black text-indigo-600 block">84</span>
+                   </div>
+                   <div class="flex-1 bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center justify-center flex-col shadow-xs">
+                     <span class="text-3xs text-orange-400 font-bold uppercase tracking-widest block mb-0.5 flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> Serie</span>
+                     <span class="text-2xl font-black text-orange-600 block">14 <span class="text-xs font-semibold text-orange-500">Tage</span></span>
+                   </div>
+                 </div>
+
+                 <!-- Rangliste -->
+                 <div class="space-y-3">
+                   <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">Top Fokus-User</h4>
+                   <div class="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-xs divide-y divide-slate-100">
+                     <div class="p-3.5 flex items-center justify-between bg-amber-50/30">
+                       <div class="flex items-center gap-3"><div class="w-6 text-center text-xl">🥇</div><div class="font-semibold text-xs text-slate-800">Max_Müller</div></div>
+                       <div class="text-xs font-bold text-slate-700">34h</div>
+                     </div>
+                     <div class="p-3.5 flex items-center justify-between bg-slate-50/50">
+                       <div class="flex items-center gap-3"><div class="w-6 text-center text-xl">🥈</div><div class="font-semibold text-xs text-slate-800">AnnaK</div></div>
+                       <div class="text-xs font-bold text-slate-700">31h</div>
+                     </div>
+                     <div class="p-3.5 flex items-center justify-between bg-orange-50/30">
+                       <div class="flex items-center gap-3"><div class="w-6 text-center text-xl">🥉</div><div class="font-semibold text-xs text-slate-800">StudyKing</div></div>
+                       <div class="text-xs font-bold text-slate-700">29h</div>
+                     </div>
+                     <div class="p-3.5 flex items-center justify-between bg-indigo-600 text-white shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                       <div class="flex items-center gap-3">
+                         <div class="w-6 text-center text-xs font-black opacity-80">#142</div>
+                         <div class="font-bold text-xs flex items-center gap-1.5">👤 Du</div>
+                       </div>
+                       <div class="text-xs font-bold">12h 34m</div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Achievements -->
+                 <div class="space-y-3">
+                   <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">Erfolge</h4>
+                   <div class="grid grid-cols-2 gap-3">
+                     <div class="p-3 bg-white border border-slate-200/60 rounded-xl shadow-xs text-center space-y-1.5 opacity-100">
+                       <div class="text-2xl mx-auto w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center">🥉</div>
+                       <div class="text-2xs font-bold text-slate-800">Erste Stunde</div>
+                       <div class="text-[9px] text-slate-400 leading-tight">60 Min. erreicht</div>
+                     </div>
+                     <div class="p-3 bg-white border border-slate-200/60 rounded-xl shadow-xs text-center space-y-1.5 opacity-100">
+                       <div class="text-2xl mx-auto w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">🥈</div>
+                       <div class="text-2xs font-bold text-slate-800">Fokus Starter</div>
+                       <div class="text-[9px] text-slate-400 leading-tight">5 Tage aktiv</div>
+                     </div>
+                     <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl shadow-xs text-center space-y-1.5 opacity-60 grayscale filter">
+                       <div class="text-2xl mx-auto w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center">🥇</div>
+                       <div class="text-2xs font-bold text-slate-800">Meister</div>
+                       <div class="text-[9px] text-slate-400 leading-tight">100h Fokus</div>
+                     </div>
+                     <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl shadow-xs text-center space-y-1.5 opacity-60 grayscale filter">
+                       <div class="text-2xl mx-auto w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">🔥</div>
+                       <div class="text-2xs font-bold text-slate-800">Unaufhaltsam</div>
+                       <div class="text-[9px] text-slate-400 leading-tight">30 Tage Streak</div>
+                     </div>
+                   </div>
+                 </div>
+
+               </div>
+               
+               <!-- Кнопка возврата в самом низу -->
+               <div class="px-5 pb-6 mt-auto">
+                 <button onclick="setAppScreen('home')" class="w-full py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-2xl transition flex items-center justify-center gap-2">
+                   Zurück zum Home
+                 </button>
+               </div>
+             </div>
+
+             <!-- ЭКРАН 5: Einstellungen -->
+             <div id="app-screen-settings" class="app-screen p-5 flex flex-col justify-between flex-1 space-y-6 hidden">
+               <div class="space-y-4">
+                 <div>
+                   <span class="text-2xs text-slate-400 font-semibold uppercase tracking-wider">Konfiguration</span>
+                   <h3 class="text-xl font-bold text-slate-900">Einstellungen</h3>
+                 </div>
+                 <div class="bg-white rounded-2xl border border-slate-200/60 overflow-hidden divide-y divide-slate-100">
+                   <div class="p-3.5 flex items-center justify-between">
+                     <div class="flex items-center gap-2.5">
+                       <div class="w-7 h-7 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i data-lucide="sliders" class="w-4 h-4"></i></div>
+                       <span class="text-xs font-medium text-slate-800">Fokus-Intensität</span>
+                     </div>
+                     <span class="text-xs text-slate-400 font-semibold flex items-center gap-1">Mittel <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-300"></i></span>
+                   </div>
+                 </div>
+                 <div onclick="setAppScreen('premium')" class="p-4 bg-gradient-to-tr from-amber-500 to-amber-400 rounded-2xl text-white cursor-pointer shadow-sm relative overflow-hidden group">
+                   <div class="absolute -right-3 -bottom-3 w-16 h-16 bg-white/10 rounded-full group-hover:scale-125 transition"></div>
+                   <h4 class="font-bold text-xs">Premium aktivieren</h4>
+                   <p class="text-3xs text-amber-100 mt-0.5">Schalte alle Pro-Features & AI-Analysen frei.</p>
+                 </div>
+               </div>
+               <button onclick="setAppScreen('home')" class="w-full py-3.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-2xl transition">Zurück</button>
+             </div>
+
+             <!-- ЭКРАН 6: Premium Screen -->
+             <div id="app-screen-premium" class="app-screen p-5 flex flex-col flex-1 hidden bg-slate-900 text-white overflow-y-auto hide-scrollbar">
+               
+               <div class="space-y-5 text-center pt-2 pb-6">
+                 <div class="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 items-center justify-center text-white shadow-lg mx-auto">
+                   <i data-lucide="crown" class="w-6 h-6"></i>
+                 </div>
+                 <div class="space-y-1">
+                   <h3 class="text-2xl font-black tracking-tight text-white">Focus Mode+ Premium</h3>
+                   <p class="text-xs text-slate-400">Das Upgrade für deine Aufmerksamkeit</p>
+                 </div>
+
+                 <!-- Блок покупки -->
+                 <div class="py-2.5 px-4 bg-white/5 border border-white/10 rounded-2xl inline-block mb-1">
+                   <span class="text-2xl font-extrabold text-amber-400">3,00 € <span class="text-xs font-normal text-slate-300">/ Monat</span></span>
+                 </div>
+                 
+                 <!-- ВОЗВРАЩЕННЫЙ СПИСОК ФИШЕК PRO-ВЕРСИИ -->
+                 <div class="text-left space-y-2.5 px-3 mb-2">
+                   <div class="flex items-start gap-2.5 text-xs">
+                     <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                     <span class="text-slate-300 leading-tight">Detaillierte Langzeitstatistiken</span>
+                   </div>
+                   <div class="flex items-start gap-2.5 text-xs">
+                     <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                     <span class="text-slate-300 leading-tight">Verhaltensanalyse auf Basis künstlicher Intelligenz</span>
+                   </div>
+                   <div class="flex items-start gap-2.5 text-xs">
+                     <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                     <span class="text-slate-300 leading-tight">Erweiterte Blockierungs-Modi</span>
+                   </div>
+                 </div>
+
+                 <!-- ИЗМЕНЕНО: Вызов функции покупки премиума -->
+                 <button onclick="simulatePremiumPurchase()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition mt-2">
+                   Premium abonnieren
+                 </button>
+
+                 <!-- Разделитель -->
+                 <div class="flex items-center gap-3 my-4 opacity-50">
+                   <div class="h-px bg-white flex-1"></div>
+                   <span class="text-3xs uppercase tracking-widest font-bold">Oder kostenlos</span>
+                   <div class="h-px bg-white flex-1"></div>
+                 </div>
+
+                 <!-- Premium durch Leistung -->
+                 <div class="text-left space-y-3">
+                   <h4 class="text-xs font-bold text-white mb-2">Premium durch Leistung freischalten</h4>
+                   
+                   <!-- ИЗМЕНЕНО: Вызов функции покупки премиума через баллы -->
+                   <div class="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/10 transition" onclick="simulatePremiumPurchase()">
+                     <div class="flex items-center gap-3">
+                       <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center"><i data-lucide="gift" class="w-4 h-4"></i></div>
+                       <div>
+                         <div class="text-xs font-bold text-white">1 Tag Premium</div>
+                         <div class="text-[9px] text-slate-400">Für 100 Min. Fokuszeit</div>
+                       </div>
+                     </div>
+                     <span class="text-xs font-bold text-amber-400">Einlösen</span>
+                   </div>
+
+                   <div class="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between opacity-60">
+                     <div class="flex items-center gap-3">
+                       <div class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i data-lucide="lock" class="w-4 h-4"></i></div>
+                       <div>
+                         <div class="text-xs font-bold text-white">3 Tage Premium</div>
+                         <div class="text-[9px] text-slate-400">Benötigt 10h Fokuszeit</div>
+                       </div>
+                     </div>
+                   </div>
+
+                   <div class="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between opacity-60">
+                     <div class="flex items-center gap-3">
+                       <div class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center"><i data-lucide="lock" class="w-4 h-4"></i></div>
+                       <div>
+                         <div class="text-xs font-bold text-white">7 Tage Premium</div>
+                         <div class="text-[9px] text-slate-400">Benötigt 50h Fokuszeit</div>
+                       </div>
+                     </div>
+                   </div>
+
+                 </div>
+
+                 <button onclick="setAppScreen('home')" class="w-full py-3 mt-4 text-slate-400 hover:text-white text-3xs font-medium transition">
+                   Zurück zum Dashboard
+                 </button>
+               </div>
+             </div>
+
+             <!-- ЭКРАН 7: Чат (AI Coach) -->
+             <div id="app-screen-chat" class="app-screen flex flex-col flex-1 hidden bg-slate-50 relative overflow-hidden">
+               <div class="px-5 pt-5 pb-3 bg-slate-50 border-b border-slate-200/80 shrink-0 z-10 flex items-center gap-3 shadow-sm">
+                 <button onclick="setAppScreen('home')" class="w-8 h-8 bg-white hover:bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-700 transition">
+                   <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                 </button>
+                 <div>
+                   <h3 class="font-bold text-slate-900 text-sm">AI Coach</h3>
+                   <span class="text-[9px] text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online</span>
+                 </div>
+               </div>
+               
+               <!-- СОСТОЯНИЕ 1: Заблокировано (Без Премиума) -->
+               <div id="chat-locked-state" class="flex-1 overflow-y-auto hide-scrollbar space-y-4 px-5 pt-4 pb-4">
+                 <div class="flex gap-2.5">
+                   <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                     <i data-lucide="bot" class="w-4 h-4"></i>
+                   </div>
+                   <div class="bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200/60 shadow-xs text-xs text-slate-600 leading-relaxed">
+                     Hallo! Ich bin dein AI Coach. Ich scanne, überprüfe und analysiere deine Fokus-Muster, um dir das beste Verhaltenstraining zu bieten.
+                   </div>
+                 </div>
+                 
+                 <div class="flex gap-2.5">
+                   <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                     <i data-lucide="bot" class="w-4 h-4"></i>
+                   </div>
+                   <div class="bg-indigo-50 border border-indigo-100 p-3.5 rounded-2xl rounded-tl-none shadow-xs text-xs text-indigo-900 leading-relaxed space-y-3">
+                     <p><strong>Premium erforderlich</strong></p>
+                     <p>Um diese personalisierte Analyse-Funktion zu nutzen, aktiviere bitte dein Premium-Abonnement.</p>
+                     <button onclick="setAppScreen('premium')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition shadow-sm flex items-center justify-center gap-2 mt-2">
+                       <i data-lucide="crown" class="w-3.5 h-3.5"></i> Zu Premium wechseln
+                     </button>
+                   </div>
+                 </div>
+               </div>
+
+               <!-- СОСТОЯНИЕ 2: Активно (С Премиумом) -->
+               <div id="chat-active-state" class="hidden flex-1 flex flex-col overflow-hidden bg-slate-50">
+                 <div id="chatMessages" class="flex-1 overflow-y-auto hide-scrollbar space-y-4 px-5 pt-4 pb-20">
+                   <!-- Приветственное сообщение -->
+                   <div class="flex gap-2.5">
+                     <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                       <i data-lucide="bot" class="w-4 h-4"></i>
+                     </div>
+                     <div class="bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200/60 shadow-xs text-xs text-slate-600 leading-relaxed">
+                       Willkommen im Premium-Modus! Ich habe deine bisherigen Sitzungen analysiert. Wie kann ich dir heute helfen?
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Индикатор печати бота (скрыт по умолчанию) -->
+                 <div id="typingIndicator" class="hidden px-5 pb-20 absolute bottom-0 left-0">
+                   <div class="flex gap-2.5">
+                     <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                       <i data-lucide="bot" class="w-4 h-4"></i>
+                     </div>
+                     <div class="bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200/60 shadow-xs flex items-center gap-1 w-16 h-10">
+                       <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+                       <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+                       <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Поле ввода (прилеплено вниз) -->
+                 <div class="absolute bottom-6 left-0 right-0 px-4 z-20">
+                   <div class="bg-white border border-slate-200 rounded-full shadow-lg p-1.5 flex items-center gap-2">
+                     <button id="chatPromptBtn" onclick="triggerChatAnalysis()" class="flex-1 text-left px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-full text-xs font-medium text-indigo-700 transition truncate">
+                       Was kannst du mir empfehlen?
+                     </button>
+                     <div class="w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white shrink-0 cursor-pointer shadow-sm">
+                       <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+             </div>
+
+           </div>
+
+           <!-- Home Indicator -->
+           <div class="h-5 bg-white flex items-center justify-center pb-2 shrink-0 z-40 transition-colors duration-300 cursor-pointer" id="homeBar" onclick="setAppScreen('home')">
+             <div class="w-28 h-1 bg-slate-300 rounded-full"></div>
+           </div>
+
+           <!-- POPUP: Успешная покупка (Apple Pay style) -->
+           <div id="screen-popup-success" class="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-xl z-[80] flex items-center justify-center p-5 hidden transition-all duration-300 ease-out opacity-0">
+             <div id="popupContentSuccess" class="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md rounded-[32px] p-8 w-48 text-center flex flex-col items-center justify-center shadow-2xl transform transition-all duration-300 ease-out scale-90 opacity-0 border border-slate-100 dark:border-white/10">
+               <div class="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white mb-4 shadow-lg shadow-emerald-500/30">
+                 <i data-lucide="check" class="w-8 h-8"></i>
+               </div>
+               <span class="text-slate-900 dark:text-white font-bold text-sm tracking-wide">Aktiviert</span>
+             </div>
+           </div>
+
+           <!-- POPUP: Ablenkung -->
+           <div id="screen-popup-ablenkung" class="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-5 hidden transition-all duration-300 ease-out opacity-0">
+             <div id="popupContentAblenkung" class="bg-white rounded-3xl p-6 w-full text-center space-y-5 shadow-2xl transform transition-all duration-300 ease-out scale-95 opacity-0">
+               <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-50 mx-auto animate-bounce">
+                 <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-500"></i>
+               </div>
+               <div class="space-y-2">
+                 <h3 class="text-xl font-bold text-slate-900">Ablenkung erkannt</h3>
+                 <p class="text-xs text-slate-500 leading-relaxed">
+                   Möchtest du wirklich die Fokus-Sitzung verlassen und deinen Streak verlieren?
+                 </p>
+               </div>
+               <div class="space-y-2">
+                 <button onclick="closePopup('ablenkung', true)" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition">Zurück zum Fokus</button>
+                 <button onclick="closePopup('ablenkung', false)" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 transition">Trotzdem verlassen</button>
+               </div>
+             </div>
+           </div>
+
+           <!-- POPUP: Achievement -->
+           <div id="screen-popup-achievement" class="absolute inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-xl z-[70] flex items-center justify-center p-5 hidden transition-all duration-300 ease-out opacity-0">
+             <div id="popupContentAchievement" class="bg-gradient-to-b from-amber-50 to-white dark:from-neutral-800 dark:to-neutral-900 rounded-3xl p-6 w-full text-center space-y-5 shadow-[0_0_50px_rgba(245,158,11,0.3)] transform transition-all duration-500 ease-out scale-90 opacity-0 border border-amber-200/50 dark:border-amber-500/20">
+               <div class="w-16 h-16 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg animate-[bounce_1.5s_infinite]">
+                 <i data-lucide="gift" class="w-8 h-8"></i>
+               </div>
+               <div class="space-y-2 pt-2">
+                 <span class="text-3xs font-black uppercase tracking-widest text-amber-500">Belohnung freigeschaltet</span>
+                 <h3 class="text-xl font-black text-slate-900 dark:text-white">Premium für 1 Tag</h3>
+                 <p class="text-xs text-slate-500 dark:text-neutral-400 leading-relaxed pt-1">
+                   Glückwunsch! Du hast über 100 Minuten fokussiert gearbeitet. Genieße alle Premium-Features.
+                 </p>
+               </div>
+               <div class="pt-2">
+                 <button onclick="closePopup('achievement')" class="w-full py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold transition shadow-md">
+                   Awesome!
+                 </button>
+               </div>
+             </div>
+           </div>
+
+         </div>
+       </div>
+
+     </div>
+
+   </section>
+
+ </main>
+
+ <!-- Интерактивный JS -->
+ <script>
+   let currentSlide = 1;
+   const totalSlides = 9;
+   let timerInterval = null;
+   let timerDuration = 25 * 60; 
+   let originalDuration = 25 * 60;
+   
+   // НОВАЯ ПЕРЕМЕННАЯ: Статус премиума
+   let isPremiumUser = false;
+
+   document.addEventListener("DOMContentLoaded", () => {
+     lucide.createIcons();
+     updateStatusBarTime();
+     setInterval(updateStatusBarTime, 1000);
+     changeSlide(1);
+   });
+
+   function updateStatusBarTime() {
+     const now = new Date();
+     let hours = now.getHours().toString().padStart(2, '0');
+     let minutes = now.getMinutes().toString().padStart(2, '0');
+     document.getElementById('statusBarTime').textContent = `${hours}:${minutes}`;
+   }
+
+   function changeSlide(directionOrNumber) {
+     let targetSlide = currentSlide;
+     if (typeof directionOrNumber === 'number') {
+       targetSlide = directionOrNumber;
+     } else if (directionOrNumber === 'next') {
+       targetSlide = currentSlide < totalSlides ? currentSlide + 1 : totalSlides;
+     } else if (directionOrNumber === 'prev') {
+       targetSlide = currentSlide > 1 ? currentSlide - 1 : 1;
+     }
+
+     for (let i = 1; i <= totalSlides; i++) {
+       const slide = document.getElementById(`slide-${i}`);
+       if (slide) slide.classList.add('hidden');
+     }
+
+     const targetElement = document.getElementById(`slide-${targetSlide}`);
+     if (targetElement) targetElement.classList.remove('hidden');
+
+     currentSlide = targetSlide;
+     document.getElementById('slideCounter').textContent = `${currentSlide} / ${totalSlides}`;
+     syncIphoneWithSlide(currentSlide);
+   }
+
+   function nextSlide() { changeSlide('next'); }
+   function prevSlide() { changeSlide('prev'); }
+
+   function syncIphoneWithSlide(slideNumber) {
+     if (document.body.classList.contains('zen-active')) {
+       exitZenMode();
+     }
+
+     switch(slideNumber) {
+       case 1: setAppScreen('home'); break;
+       case 2: setAppScreen('stats'); break;
+       case 3: setAppScreen('home'); break;
+       case 4: startFocusSession(false); break;
+       case 5: 
+         startFocusSession(false);
+         setTimeout(() => triggerAppAblenkung(), 400);
+         break;
+       case 6: setAppScreen('score'); break;
+       case 7: setAppScreen('premium'); break;
+       case 8: setAppScreen('settings'); break;
+       case 9: setAppScreen('home'); break;
+     }
+   }
+
+   function setAppScreen(screenName) {
+     const screens = document.querySelectorAll('.app-screen');
+     screens.forEach(s => s.classList.add('hidden'));
+
+     const target = document.getElementById(`app-screen-${screenName}`);
+     if (target) {
+         target.classList.remove('hidden');
+         
+         // ЛОГИКА ДЛЯ ЧАТА
+         if (screenName === 'chat') {
+           const lockedState = document.getElementById('chat-locked-state');
+           const activeState = document.getElementById('chat-active-state');
+           if (isPremiumUser) {
+             lockedState.classList.add('hidden');
+             activeState.classList.remove('hidden');
+           } else {
+             lockedState.classList.remove('hidden');
+             activeState.classList.add('hidden');
+           }
+         }
+         lucide.createIcons();
+     }
+
+     const appBody = document.getElementById('appBody');
+     const statusBar = document.getElementById('statusBar');
+     const homeBar = document.getElementById('homeBar');
+     const screenWrapper = document.getElementById('screenWrapper');
+
+     if (screenName === 'premium') {
+       appBody.classList.remove('bg-slate-50', 'text-slate-900');
+       appBody.classList.add('bg-slate-900', 'text-white');
+       statusBar.classList.remove('bg-white', 'text-slate-800');
+       statusBar.classList.add('bg-slate-900', 'text-white');
+       homeBar.classList.remove('bg-white');
+       homeBar.classList.add('bg-slate-900');
+       homeBar.querySelector('div').classList.add('bg-slate-700');
+       homeBar.querySelector('div').classList.remove('bg-slate-300');
+       if(screenWrapper) {
+         screenWrapper.classList.remove('bg-slate-50');
+         screenWrapper.classList.add('bg-slate-900');
+       }
+     } else {
+       appBody.classList.add('bg-slate-50', 'text-slate-900');
+       appBody.classList.remove('bg-slate-900', 'text-white');
+       statusBar.classList.add('bg-white', 'text-slate-800');
+       statusBar.classList.remove('bg-slate-900', 'text-white');
+       homeBar.classList.add('bg-white');
+       homeBar.classList.remove('bg-slate-900');
+       homeBar.querySelector('div').classList.remove('bg-slate-700');
+       homeBar.querySelector('div').classList.add('bg-slate-300');
+       if(screenWrapper) {
+         screenWrapper.classList.add('bg-slate-50');
+         screenWrapper.classList.remove('bg-slate-900');
+       }
+     }
+
+     const buttons = document.querySelectorAll('.app-nav-btn');
+     buttons.forEach(btn => {
+       btn.classList.remove('bg-indigo-600', 'text-white');
+       btn.classList.add('text-slate-600');
+     });
+
+     const map = { 'home': 0, 'timer': 1, 'stats': 2, 'score': 3, 'settings': 4, 'premium': 5, 'chat': -1 };
+     if (map[screenName] !== undefined && map[screenName] >= 0 && buttons[map[screenName]]) {
+       buttons[map[screenName]].classList.add('bg-indigo-600', 'text-white');
+       buttons[map[screenName]].classList.remove('text-slate-600', 'bg-slate-50', 'dark:bg-neutral-800');
+     }
+   }
+
+   /* =========================================
+      НОВАЯ ЛОГИКА: Покупка Премиума
+      ========================================= */
+   function simulatePremiumPurchase() {
+     const popup = document.getElementById('screen-popup-success');
+     const content = document.getElementById('popupContentSuccess');
+     
+     // Показываем поп-ап
+     popup.classList.remove('hidden');
+     requestAnimationFrame(() => {
+       popup.classList.add('opacity-100'); popup.classList.remove('opacity-0');
+       content.classList.add('scale-100', 'opacity-100'); content.classList.remove('scale-90', 'opacity-0');
+     });
+
+     // Через 1.5 секунды устанавливаем премиум и уходим на Home
+     setTimeout(() => {
+       isPremiumUser = true;
+       
+       // Скрываем поп-ап
+       popup.classList.add('opacity-0'); popup.classList.remove('opacity-100');
+       content.classList.add('scale-90', 'opacity-0'); content.classList.remove('scale-100', 'opacity-100');
+       
+       setTimeout(() => {
+         popup.classList.add('hidden');
+         setAppScreen('home'); // Переход на Home
+       }, 300);
+     }, 1800);
+   }
+
+   /* =========================================
+      НОВАЯ ЛОГИКА: AI Чат
+      ========================================= */
+   function triggerChatAnalysis() {
+     const chatMessages = document.getElementById('chatMessages');
+     const promptBtn = document.getElementById('chatPromptBtn');
+     
+     // Отключаем кнопку, чтобы не нажать дважды
+     promptBtn.disabled = true;
+     promptBtn.classList.add('opacity-50');
+
+     // 1. Добавляем сообщение пользователя
+     const userMsgHtml = `
+       <div class="flex justify-end mb-4">
+         <div class="bg-indigo-600 text-white p-3.5 rounded-2xl rounded-tr-none shadow-xs text-xs leading-relaxed max-w-[85%]">
+           Was kannst du mir empfehlen?
+         </div>
+       </div>
+     `;
+     chatMessages.insertAdjacentHTML('beforeend', userMsgHtml);
+     scrollToBottom();
+
+     // Функция задержки
+     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+     // Секвенция ответов бота
+     const runSequence = async () => {
+       // --- Сообщение 1 ---
+       showTyping();
+       await wait(1500);
+       hideTyping();
+       const botMsg1 = `
+         <div class="flex gap-2.5 mb-4">
+           <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+             <i data-lucide="bot" class="w-4 h-4"></i>
+           </div>
+           <div class="bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200/60 shadow-xs text-xs text-slate-600 leading-relaxed w-full">
+             <p class="mb-2">Basierend auf deinen Daten habe ich folgendes Muster erkannt:</p>
+             <p class="font-bold text-slate-800">Du verlierst deinen Fokus meistens zwischen 18:00 und 20:00 Uhr.</p>
+             
+             <!-- ГРАФИК -->
+             <div class="mt-3 bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-end gap-1.5 h-24 relative overflow-hidden">
+               <div class="flex-1 bg-indigo-200 h-[80%] rounded-t-sm transition-all"></div>
+               <div class="flex-1 bg-indigo-400 h-[90%] rounded-t-sm transition-all"></div>
+               <div class="flex-1 bg-rose-400 h-[30%] rounded-t-sm relative transition-all">
+                 <div class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] bg-rose-100 text-rose-600 px-1 rounded font-bold">18:00</div>
+               </div>
+               <div class="flex-1 bg-rose-400 h-[20%] rounded-t-sm relative transition-all">
+                 <div class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] bg-rose-100 text-rose-600 px-1 rounded font-bold">20:00</div>
+               </div>
+               <div class="flex-1 bg-indigo-300 h-[70%] rounded-t-sm transition-all"></div>
+             </div>
+             <p class="text-[9px] text-slate-400 mt-1 text-center">Fokus-Niveau im Tagesverlauf</p>
+           </div>
+         </div>
+       `;
+       chatMessages.insertAdjacentHTML('beforeend', botMsg1);
+       lucide.createIcons();
+       scrollToBottom();
+
+       // --- Сообщение 2 ---
+       showTyping();
+       await wait(2000);
+       hideTyping();
+       const botMsg2 = `
+         <div class="flex gap-2.5 mb-4">
+           <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+             <i data-lucide="bot" class="w-4 h-4"></i>
+           </div>
+           <div class="bg-white p-3.5 rounded-2xl rounded-tl-none border border-slate-200/60 shadow-xs text-xs text-slate-600 leading-relaxed">
+             Deine erfolgreichsten Sitzungen dauern exakt <strong class="text-indigo-600">35 Minuten</strong>. 
+             <br><br>
+             💡 <strong>Mein Tipp:</strong> Versuche kürzere Pausen nach intensiven Lernphasen einzuplanen und reduziere die Sitzungsdauer am Abend.
+           </div>
+         </div>
+       `;
+       chatMessages.insertAdjacentHTML('beforeend', botMsg2);
+       lucide.createIcons();
+       scrollToBottom();
+     };
+
+     runSequence();
+   }
+
+   function showTyping() {
+     const typingIndicator = document.getElementById('typingIndicator');
+     typingIndicator.classList.remove('hidden');
+     scrollToBottom();
+   }
+
+   function hideTyping() {
+     const typingIndicator = document.getElementById('typingIndicator');
+     typingIndicator.classList.add('hidden');
+   }
+
+   function scrollToBottom() {
+     const chatMessages = document.getElementById('chatMessages');
+     chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+   }
+
+
+   /* =========================================
+      Существующие функции
+      ========================================= */
+   function startFocusSession(forceRestart = true) {
+     setAppScreen('timer');
+     document.getElementById('islandIndicator').classList.remove('hidden');
+     if (!forceRestart && timerInterval) return; 
+     if (timerInterval) clearInterval(timerInterval);
+     timerDuration = 25 * 60; 
+     updateTimerUI();
+     timerInterval = setInterval(() => {
+       if (timerDuration > 0) { timerDuration--; updateTimerUI(); } 
+       else { stopFocusSession(); }
+     }, 1000);
+   }
+
+   function stopFocusSession() {
+     if (timerInterval) clearInterval(timerInterval);
+     timerInterval = null; 
+     document.getElementById('islandIndicator').classList.add('hidden');
+     setAppScreen('home');
+   }
+
+   function updateTimerUI() {
+     const min = Math.floor(timerDuration / 60).toString().padStart(2, '0');
+     const sec = (timerDuration % 60).toString().padStart(2, '0');
+     document.getElementById('timerDigits').textContent = `00:${min}:${sec}`;
+     const circle = document.getElementById('timerCircleProgress');
+     const offset = 502 - ((timerDuration / originalDuration) * 502);
+     circle.style.strokeDashoffset = offset;
+   }
+
+   function triggerAppAblenkung() {
+     const popup = document.getElementById('screen-popup-ablenkung');
+     const content = document.getElementById('popupContentAblenkung');
+     popup.classList.remove('hidden');
+     requestAnimationFrame(() => {
+       popup.classList.add('opacity-100'); popup.classList.remove('opacity-0');
+       content.classList.add('scale-100', 'opacity-100'); content.classList.remove('scale-95', 'opacity-0');
+     });
+   }
+
+   function triggerAchievementPopup() {
+     const popup = document.getElementById('screen-popup-achievement');
+     const content = document.getElementById('popupContentAchievement');
+     popup.classList.remove('hidden');
+     requestAnimationFrame(() => {
+       popup.classList.add('opacity-100'); popup.classList.remove('opacity-0');
+       content.classList.add('scale-100', 'opacity-100'); content.classList.remove('scale-90', 'opacity-0');
+     });
+   }
+
+   function closePopup(type, returnToTimer = false) {
+     const popup = document.getElementById(`screen-popup-${type}`);
+     const content = document.getElementById(type === 'ablenkung' ? 'popupContentAblenkung' : 'popupContentAchievement');
+     
+     popup.classList.add('opacity-0'); popup.classList.remove('opacity-100');
+     content.classList.add(type === 'ablenkung' ? 'scale-95' : 'scale-90', 'opacity-0'); 
+     content.classList.remove('scale-100', 'opacity-100');
+     
+     setTimeout(() => {
+       popup.classList.add('hidden');
+       if (type === 'ablenkung') {
+         if (returnToTimer) setAppScreen('timer');
+         else stopFocusSession();
+       }
+     }, 300);
+   }
+
+   function toggleTheme() {
+     document.documentElement.classList.toggle('dark');
+   }
+
+   function enterZenMode() {
+     document.body.classList.add('zen-active');
+     setAppScreen('home');
+   }
+
+   function exitZenMode() {
+     document.body.classList.remove('zen-active');
+   }
+ </script>
+</body>
+</html>
